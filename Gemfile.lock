@@ -1,0 +1,62 @@
+PATH
+  remote: .
+  specs:
+    rake_cloudspin (0.0.1)
+      confidante
+      rake_dependencies
+      rake_fly
+      rake_terraform
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (5.2.0)
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      i18n (>= 0.7, < 2)
+      minitest (~> 5.1)
+      tzinfo (~> 1.1)
+    concurrent-ruby (1.0.5)
+    confidante (0.7.0)
+      activesupport (>= 4.0.2)
+      hiera (~> 3.3, >= 3.3.1)
+    hamster (3.0.0)
+      concurrent-ruby (~> 1.0)
+    hiera (3.4.3)
+    i18n (1.0.1)
+      concurrent-ruby (~> 1.0)
+    lino (1.1.0)
+      hamster (~> 3.0)
+      open4 (~> 1.3)
+    minitar (0.6.1)
+    minitest (5.11.3)
+    open4 (1.3.4)
+    rake (12.3.1)
+    rake_dependencies (0.15.1)
+      hamster (~> 3.0)
+      minitar (~> 0.6)
+      rubyzip (~> 1.1)
+    rake_fly (0.6.0)
+      rake_dependencies (~> 0.15)
+      ruby_fly (~> 0.4)
+    rake_terraform (0.17.0)
+      rake_dependencies (~> 0.15)
+      ruby-terraform (~> 0.11)
+    ruby-terraform (0.12.1)
+      lino (~> 1.1)
+    ruby_fly (0.4.1)
+      lino (~> 1.1)
+    rubyzip (1.2.1)
+    thread_safe (0.3.6)
+    tzinfo (1.2.5)
+      thread_safe (~> 0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler (~> 1.14)
+  rake (~> 12.3)
+  rake_cloudspin!
+
+BUNDLED WITH
+   1.16.2
