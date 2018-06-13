@@ -1,6 +1,7 @@
 require 'confidante'
 require 'rake_terraform'
 require 'rake/tasklib'
+require 'aws_ssh_key'
 require_relative '../tasklib'
 
 # require_relative '../../terraform_output'
@@ -130,23 +131,12 @@ module RakeCloudspin
 
           desc "Ensure ssh keys for #{deployment_stack}"
           task :ssh_keys do
-            puts  "Need ssh keys:"
             stack_configuration.ssh_keys.each { |ssh_key_name|
-              puts "  - #{ssh_key_name}"
-              secure_parameter_ssh_key_public = "/#{@configuration.estate}/#{@configuration.component}/#{deployment_stack}/#{@configuration.deployment_identifier}/ssh_key/#{ssh_key_name}/public"
-              secure_parameter_ssh_key_private = "/#{@configuration.estate}/#{@configuration.component}/#{deployment_stack}/#{@configuration.deployment_identifier}/ssh_key/#{ssh_key_name}/private"
-
-              public_key = SecureParameter.get_parameter(secure_parameter_ssh_key_public, @configuration.region)
-              if public_key.nil? then
-                puts "Generating a new ssh key #{ssh_key_name}"
-                key = KeyMaker.make_key(ssh_key_name)
-                SecureParameter.put_parameter(secure_parameter_ssh_key_public, key[:public], @configuration.region)
-                SecureParameter.put_parameter(secure_parameter_ssh_key_private, key[:private], @configuration.region)
-                public_key = key[:public]
-              end
-              puts "ssh key is in 'work/deployment/#{deployment_stack}/ssh_keys/#{ssh_key_name}.pub'"
-              mkpath "work/deployment/#{deployment_stack}/ssh_keys"
-              File.open("work/deployment/#{deployment_stack}/ssh_keys/#{ssh_key_name}.pub", 'w') {|f| f.write(public_key) }
+              key = AwsSshKey::Key.new("/#{@configuration.estate}/#{@configuration.component}/#{deployment_stack}/#{@configuration.deployment_identifier}/ssh_key",
+                ssh_key_name, 
+                @configuration.region)
+              key.load
+              key.write("work/deployment/#{deployment_stack}/ssh_keys/")
             }
           end
 
