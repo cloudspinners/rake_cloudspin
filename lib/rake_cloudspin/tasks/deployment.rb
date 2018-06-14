@@ -13,6 +13,9 @@ module RakeCloudspin
         @deployment_stacks = Dir.entries('deployment').select { |stack|
           File.directory? File.join('deployment', stack) and File.exists?("deployment/#{stack}/stack.yaml")
         }
+        @stacks_with_tests = @deployment_stacks.select { |deployment_stack|
+          has_inspec_tests? (deployment_stack)
+        }
       end
 
       def setup_configuration
@@ -44,6 +47,13 @@ module RakeCloudspin
         task :provision => @deployment_stacks.map { |deployment_stack|
           :"deployment:#{deployment_stack}:provision"
         }
+
+        unless @stacks_with_tests.empty?
+          desc 'Test the deployment stacks'
+          task :test => @stacks_with_tests.map { |deployment_stack|
+            :"deployment:#{deployment_stack}:test"
+          }
+        end
 
         desc 'Destroy the deployment stacks'
         task :destroy => @deployment_stacks.map { |deployment_stack|
@@ -90,8 +100,12 @@ module RakeCloudspin
         end
       end
 
+      def has_inspec_tests? (deployment_stack)
+        Dir.exist? ("deployment/#{deployment_stack}/tests/inspec")
+      end
+
       def define_stack_test_tasks(deployment_stack)
-        if Dir.exist? ("deployment/#{deployment_stack}/tests/inspec")
+        if has_inspec_tests? (deployment_stack)
 
           stack_configuration = @configuration
             .for_scope(deployment: deployment_stack)
