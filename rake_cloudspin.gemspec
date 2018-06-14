@@ -37,7 +37,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'confidante'
   spec.add_dependency 'rake_fly'
   spec.add_dependency 'aws_ssh_key'
+  spec.add_dependency 'inspec'
 
-  spec.add_development_dependency 'bundler', '~> 1.14'
-  spec.add_development_dependency 'rake', '~> 12.3'
+  spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'rake'
 end
