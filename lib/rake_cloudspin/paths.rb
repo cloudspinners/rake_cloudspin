@@ -1,7 +1,7 @@
 module Paths
   class <<self
     def project_root_directory
-      join_and_expand(self_directory, '..')
+      File.expand_path(Rake.application.original_dir)
     end
 
     def from_project_root_directory(*segments)

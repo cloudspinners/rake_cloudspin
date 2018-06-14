@@ -55,18 +55,16 @@ module RakeCloudspin
         namespace :deployment do
           @deployment_stacks.each { |deployment_stack|
             namespace deployment_stack do
-              define_deployment_stack_tasks(deployment_stack)
-              define_deployment_stack_tests(deployment_stack)
+              define_stack_tasks(deployment_stack)
+              define_stack_ssh_key_tasks(deployment_stack)
+              define_stack_test_tasks(deployment_stack)
             end
           }
         end
       end
 
-      def define_deployment_stack_tasks(deployment_stack)
-        define_ssh_key_task_if_needed(deployment_stack)
-
+      def define_stack_tasks(deployment_stack)
         RakeTerraform.define_command_tasks do |t|
-
           t.configuration_name = "deployment-#{deployment_stack}"
           t.source_directory = "deployment/#{deployment_stack}/infra"
           t.work_directory = 'work'
@@ -92,9 +90,8 @@ module RakeCloudspin
         end
       end
 
-      def define_deployment_stack_tests(deployment_stack)
+      def define_stack_test_tasks(deployment_stack)
         if Dir.exist? ("deployment/#{deployment_stack}/inspec")
-
           desc 'Test things'
           task :test do
             mkpath "work/inspec"
@@ -119,7 +116,7 @@ module RakeCloudspin
         end
       end
 
-      def define_ssh_key_task_if_needed(deployment_stack)
+      def define_stack_ssh_key_tasks(deployment_stack)
         stack_configuration = @configuration
           .for_scope(deployment: deployment_stack)
 
