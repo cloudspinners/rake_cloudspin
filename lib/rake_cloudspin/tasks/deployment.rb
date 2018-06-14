@@ -3,12 +3,7 @@ require 'rake_terraform'
 require 'rake/tasklib'
 require 'aws_ssh_key'
 require_relative '../tasklib'
-
-# require_relative '../../terraform_output'
-# require_relative '../../version'
-# require_relative '../../secure_parameter'
-# require_relative '../../key_maker'
-# require_relative '../../paths'
+require_relative '../paths'
 
 module RakeCloudspin
   module Tasks
@@ -29,7 +24,7 @@ module RakeCloudspin
         setup_configuration
         define_terraform_installation
         define_top_level_tasks
-        define_deployment_tasks
+        define_deployment_namespace
       end
 
       def define_terraform_installation
@@ -56,70 +51,71 @@ module RakeCloudspin
         }
       end
 
-      def define_deployment_tasks
-
+      def define_deployment_namespace
         namespace :deployment do
-
-          Dir.entries('deployment').select { |entry|
-            File.directory? File.join('deployment',entry) and !(entry =='.' || entry == '..')
-          }.each { |deployment_stack|
-
+          @deployment_stacks.each { |deployment_stack|
             namespace deployment_stack do
-
-              define_ssh_key_task_if_needed(deployment_stack)
-
-              RakeTerraform.define_command_tasks do |t|
-
-                t.configuration_name = "deployment-#{deployment_stack}"
-                t.source_directory = "deployment/#{deployment_stack}/infra"
-                t.work_directory = 'work'
-
-                puts "============================="
-                puts "deployment/#{deployment_stack}"
-                puts "============================="
-
-                t.state_file = lambda do
-                  Paths.from_project_root_directory('state', 'example', 'statebucket', 'statebucket.tfstate')
-                end
-
-                t.vars = lambda do |args|
-                  @configuration
-                      .for_overrides(args)
-                      .for_scope(deployment: deployment_stack)
-                      .vars
-                end
-                puts "tfvars:"
-                puts "---------------------------------------"
-                puts "#{t.vars.call({}).to_yaml}"
-                puts "---------------------------------------"
-              end
-
-              if Dir.exist? ("deployment/#{deployment_stack}/inspec")
-
-                desc 'Test things'
-                task :test do
-                  mkpath "work/inspec"
-                  File.open("work/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
-                    f.write({
-                      'deployment_identifier' => @configuration.deployment_identifier,
-                      'component' => @configuration.component,
-                      'deployment_stack' => @configuration.deployment_stack
-                    }.to_yaml)
-                  }
-
-                  inspec_cmd = 
-                    "inspec exec " \
-                    "deployment/#{deployment_stack}/inspec " \
-                    "-t aws:// " \
-                    "--reporter json-rspec:work/inspec/results-deployment-#{deployment_stack}.json " \
-                    "cli " \
-                    "--attrs work/inspec/attributes-deployment-#{deployment_stack}.yml"
-                  puts "INSPEC: #{inspec_cmd}"
-                  system(inspec_cmd)
-                end
-              end
+              define_deployment_stack_tasks(deployment_stack)
+              define_deployment_stack_tests(deployment_stack)
             end
           }
+        end
+      end
+
+      def define_deployment_stack_tasks(deployment_stack)
+        define_ssh_key_task_if_needed(deployment_stack)
+
+        RakeTerraform.define_command_tasks do |t|
+
+          t.configuration_name = "deployment-#{deployment_stack}"
+          t.source_directory = "deployment/#{deployment_stack}/infra"
+          t.work_directory = 'work'
+
+          puts "============================="
+          puts "deployment/#{deployment_stack}"
+          puts "============================="
+
+          t.state_file = lambda do
+            Paths.from_project_root_directory('state', 'example', 'statebucket', 'statebucket.tfstate')
+          end
+
+          t.vars = lambda do |args|
+            @configuration
+                .for_overrides(args)
+                .for_scope(deployment: deployment_stack)
+                .vars
+          end
+          puts "tfvars:"
+          puts "---------------------------------------"
+          puts "#{t.vars.call({}).to_yaml}"
+          puts "---------------------------------------"
+        end
+      end
+
+      def define_deployment_stack_tests(deployment_stack)
+        if Dir.exist? ("deployment/#{deployment_stack}/inspec")
+
+          desc 'Test things'
+          task :test do
+            mkpath "work/inspec"
+            File.open("work/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
+              f.write({
+                'deployment_identifier' => @configuration.deployment_identifier,
+                'component' => @configuration.component,
+                'deployment_stack' => @configuration.deployment_stack
+              }.to_yaml)
+            }
+
+            inspec_cmd = 
+              "inspec exec " \
+              "deployment/#{deployment_stack}/inspec " \
+              "-t aws:// " \
+              "--reporter json-rspec:work/inspec/results-deployment-#{deployment_stack}.json " \
+              "cli " \
+              "--attrs work/inspec/attributes-deployment-#{deployment_stack}.yml"
+            puts "INSPEC: #{inspec_cmd}"
+            system(inspec_cmd)
+          end
         end
       end
 
