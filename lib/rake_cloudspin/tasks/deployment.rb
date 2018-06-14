@@ -92,13 +92,18 @@ module RakeCloudspin
 
       def define_stack_test_tasks(deployment_stack)
         if Dir.exist? ("deployment/#{deployment_stack}/tests/inspec")
+
+          stack_configuration = @configuration
+            .for_scope(deployment: deployment_stack)
+
           desc 'Run inspec tests'
           task :test do
             mkpath "work/tests/inspec"
             File.open("work/tests/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
               f.write({
-                'deployment_identifier' => @configuration.deployment_identifier,
-                'component' => @configuration.component,
+                'deployment_identifier' => stack_configuration.deployment_identifier,
+                'component' => stack_configuration.component,
+                'service' => deployment_stack,
                 'deployment_stack' => deployment_stack
               }.to_yaml)
             }
