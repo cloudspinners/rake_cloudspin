@@ -144,9 +144,17 @@ module RakeCloudspin
           desc "Ensure ssh keys for #{deployment_stack}"
           task :ssh_keys do
             stack_configuration.ssh_keys.each { |ssh_key_name|
-              key = AwsSshKey::Key.new("/#{@configuration.estate}/#{@configuration.component}/#{deployment_stack}/#{@configuration.deployment_identifier}/ssh_key",
-                ssh_key_name, 
-                @configuration.region)
+              key = AwsSshKey::Key.new(
+                key_path: "/#{@configuration.estate}/#{@configuration.component}/#{deployment_stack}/#{@configuration.deployment_identifier}/ssh_key",
+                key_name: ssh_key_name,
+                aws_region: @configuration.region,
+                tags: {
+                  :Estate => @configuration.estate,
+                  :Component => @configuration.component,
+                  :Service => deployment_stack,
+                  :DeploymentIdentifier => @configuration.deployment_identifier
+                }
+              )
               key.load
               key.write("work/deployment/#{deployment_stack}/ssh_keys/")
             }
