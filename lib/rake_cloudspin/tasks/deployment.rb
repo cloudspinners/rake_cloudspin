@@ -91,25 +91,25 @@ module RakeCloudspin
       end
 
       def define_stack_test_tasks(deployment_stack)
-        if Dir.exist? ("deployment/#{deployment_stack}/inspec")
-          desc 'Test things'
+        if Dir.exist? ("deployment/#{deployment_stack}/tests/inspec")
+          desc 'Run inspec tests'
           task :test do
-            mkpath "work/inspec"
-            File.open("work/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
+            mkpath "work/tests/inspec"
+            File.open("work/tests/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
               f.write({
                 'deployment_identifier' => @configuration.deployment_identifier,
                 'component' => @configuration.component,
-                'deployment_stack' => @configuration.deployment_stack
+                'deployment_stack' => deployment_stack
               }.to_yaml)
             }
 
             inspec_cmd = 
               "inspec exec " \
-              "deployment/#{deployment_stack}/inspec " \
+              "deployment/#{deployment_stack}/tests/inspec/infrastructure " \
               "-t aws:// " \
-              "--reporter json-rspec:work/inspec/results-deployment-#{deployment_stack}.json " \
+              "--reporter json-rspec:work/tests/inspec/results-deployment-#{deployment_stack}.json " \
               "cli " \
-              "--attrs work/inspec/attributes-deployment-#{deployment_stack}.yml"
+              "--attrs work/tests/inspec/attributes-deployment-#{deployment_stack}.yml"
             puts "INSPEC: #{inspec_cmd}"
             system(inspec_cmd)
           end
