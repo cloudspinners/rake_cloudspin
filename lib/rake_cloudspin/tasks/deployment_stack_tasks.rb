@@ -2,7 +2,7 @@ require_relative 'base_stack_tasks'
 
 module RakeCloudspin
   module Tasks
-    class Deployment < BaseStackTasks
+    class DeploymentStackTasks < BaseStackTasks
 
       def stack_type
         'deployment'

@@ -2,7 +2,7 @@ require_relative 'base_stack_tasks'
 
 module RakeCloudspin
   module Tasks
-    class Delivery < BaseStackTasks
+    class DeliveryStackTasks < BaseStackTasks
 
       def stack_type
         'delivery'
