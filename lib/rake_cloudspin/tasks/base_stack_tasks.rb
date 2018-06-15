@@ -12,17 +12,24 @@ module RakeCloudspin
       attr_reader :configuration, :stacks, :stack_type, :stacks_with_tests
 
       def define
-        @stacks = Dir.entries(stack_type).select { |stack|
-          File.directory? File.join(stack_type, stack) and File.exists?("#{stack_type}/#{stack}/stack.yaml")
-        }
-        @stacks_with_tests = @stacks.select { |stack|
-          has_inspec_tests? (stack)
-        }
-        @configuration = Confidante.configuration
+        @stacks = if Dir.exist?(stack_type)
+          Dir.entries(stack_type).select { |stack|
+            File.directory? File.join(stack_type, stack) and File.exists?("#{stack_type}/#{stack}/stack.yaml")
+          }
+        else
+          []
+        end
 
-        define_terraform_installation_tasks
-        define_top_level_tasks
-        define_stack_tasks
+        if @stacks.any?
+          @stacks_with_tests = @stacks.select { |stack|
+            has_inspec_tests? (stack)
+          }
+          @configuration = Confidante.configuration
+
+          define_terraform_installation_tasks
+          define_top_level_tasks
+          define_stack_tasks
+        end
       end
 
       def define_terraform_installation_tasks
