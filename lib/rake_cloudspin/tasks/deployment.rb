@@ -106,33 +106,46 @@ module RakeCloudspin
 
       def define_stack_test_tasks(deployment_stack)
         if has_inspec_tests? (deployment_stack)
-
           stack_configuration = @configuration
             .for_scope(deployment: deployment_stack)
 
           desc 'Run inspec tests'
           task :test do
-            mkpath "work/tests/inspec"
-            File.open("work/tests/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
-              f.write({
-                'deployment_identifier' => stack_configuration.deployment_identifier,
-                'component' => stack_configuration.component,
-                'service' => deployment_stack,
-                'deployment_stack' => deployment_stack
-              }.to_yaml)
-            }
-
-            inspec_cmd = 
-              "inspec exec " \
-              "deployment/#{deployment_stack}/tests/inspec/infrastructure " \
-              "-t aws:// " \
-              "--reporter json-rspec:work/tests/inspec/results-deployment-#{deployment_stack}.json " \
-              "cli " \
-              "--attrs work/tests/inspec/attributes-deployment-#{deployment_stack}.yml"
-            puts "INSPEC: #{inspec_cmd}"
-            system(inspec_cmd)
+            create_inspec_attributes(deployment_stack, stack_configuration)
+            run_inspec_profile(deployment_stack)
           end
+
         end
+      end
+
+      def create_inspec_attributes(deployment_stack, stack_configuration)
+        mkpath "work/tests/inspec"
+        File.open("work/tests/inspec/attributes-deployment-#{deployment_stack}.yml", 'w') {|f| 
+          f.write({
+            'deployment_identifier' => stack_configuration.deployment_identifier,
+            'component' => stack_configuration.component,
+            'service' => deployment_stack,
+            'deployment_stack' => deployment_stack
+          }.to_yaml)
+        }
+      end
+
+      def run_inspec_profile(deployment_stack)
+        inspec_profiles = Dir.entries("deployment/#{deployment_stack}/tests/inspec").select { |profile|
+          profile != '..'
+          File.exists? ("deployment/#{deployment_stack}/tests/inspec/#{profile}/inspec.yml")
+        }.each { |profile|
+          profile_name = profile != '.' ? profile : 'root'
+          inspec_cmd = 
+            "inspec exec " \
+            "deployment/#{deployment_stack}/tests/inspec/#{profile} " \
+            "-t aws:// " \
+            "--reporter json-rspec:work/tests/inspec/results-deployment-#{deployment_stack}-#{profile_name}.json " \
+            "cli " \
+            "--attrs work/tests/inspec/attributes-deployment-#{deployment_stack}.yml"
+          puts "INSPEC: #{inspec_cmd}"
+          system(inspec_cmd)
+        }
       end
 
       def define_stack_ssh_key_tasks(deployment_stack)
