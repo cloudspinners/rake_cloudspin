@@ -24,12 +24,18 @@ module RakeCloudspin
           @stacks_with_tests = @stacks.select { |stack|
             has_inspec_tests? (stack)
           }
-          @configuration = Confidante.configuration
+          @configuration = Confidante.configuration(
+            :hiera => Hiera.new(config: hiera_file)
+          )
 
           define_terraform_installation_tasks
           define_top_level_tasks
           define_stack_tasks
         end
+      end
+
+      def hiera_file
+        File.expand_path(File.join(File.dirname(__FILE__), 'hiera.yaml'))
       end
 
       def stack_configuration(stack, args)
