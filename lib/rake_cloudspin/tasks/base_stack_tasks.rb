@@ -32,6 +32,12 @@ module RakeCloudspin
         end
       end
 
+      def stack_configuration(stack, args)
+        configuration
+            .for_overrides(args)
+            .for_scope(stack_type => stack)
+      end
+
       def define_terraform_installation_tasks
         RakeTerraform.define_installation_tasks(
           path: File.join(Dir.pwd, 'vendor', 'terraform'),
@@ -61,28 +67,58 @@ module RakeCloudspin
           puts "#{stack_type}/#{stack}"
           puts "============================="
 
-          t.state_file = lambda do
-            Paths.from_project_root_directory('state', 'example', 'statebucket', 'statebucket.tfstate')
+          # TODO: Handle args that override configuration
+          stack_state = stack_configuration(stack, {}).state
+          if stack_state.nil? || stack_state[:type].to_s.empty? || stack_state[:type] == 'local'
+            add_local_state_configuration(stack, t)
+          elsif stack_state[:type] == 's3'
+            add_s3_backend_configuration(stack, task)
+          else
+            raise "ERROR: Unknown stack state type '#{stack_state[:type]}' for #{stack_type} stack '#{stack}'"
           end
 
           t.vars = lambda do |args|
-            # I don't think this will work:
-            configuration
-                .for_overrides(args)
-                .for_scope(stack_type => stack)
-                .vars
+            puts "Terraform variables:"
+            puts "---------------------------------------"
+            puts "#{stack_configuration(stack, args).vars.to_yaml}"
+            puts "---------------------------------------"
+            stack_configuration(stack, args).vars
           end
-          puts "tfvars:"
-          puts "---------------------------------------"
-          puts "#{t.vars.call({}).to_yaml}"
-          puts "---------------------------------------"
         end
+      end
+
+      def add_local_state_configuration(stack, task)
+        puts "INFO: Storing terraform state locally"
+        task.state_file = lambda do |args|
+          local_statefile_path(stack, args)
+        end
+      end
+
+      def local_statefile_path(stack, args)
+        Paths.from_project_root_directory(
+            'state', 
+            stack_configuration(stack, args).deployment_identifier || 'component',
+            stack_configuration(stack, args).component,
+            stack_type,
+            "#{stack}.tfstate")
+      end
+
+      def add_s3_backend_configuration(stack, task)
+        puts "INFO: Storing terraform state in a remote S3 bucket"
+        task.backend_config = lambda do |args|
+          stack_configuration(stack, args).backend_config
+        end
+        puts "backend:"
+        puts "---------------------------------------"
+        puts "#{task.backend_config.call({}).to_yaml}"
+        puts "---------------------------------------"
       end
 
       def define_tasks_for_stack_tests(stack)
         if has_inspec_tests? (stack)
           desc 'Run inspec tests'
           task :test do
+            # TODO: Handle args that override configuration
             create_inspec_attributes(stack)
             run_inspec_profile(stack)
           end
@@ -95,11 +131,10 @@ module RakeCloudspin
 
       def create_inspec_attributes(stack)
         mkpath "work/tests/inspec"
-        stack_configuration = configuration.for_scope(stack_type => stack)
         File.open("work/tests/inspec/attributes-#{stack_type}-#{stack}.yml", 'w') {|f| 
           f.write({
-            'deployment_identifier' => stack_configuration.deployment_identifier,
-            'component' => stack_configuration.component,
+            'deployment_identifier' => stack_configuration(stack, {}).deployment_identifier,
+            'component' => stack_configuration(stack, {}).component,
             'service' => stack,
             'stack' => stack
           }.to_yaml)
@@ -125,21 +160,22 @@ module RakeCloudspin
       end
 
       def define_tasks_for_ssh_keys(stack)
-        stack_configuration = configuration.for_scope(stack_type => stack)
+        # TODO: Handle args that override configuration
+        ssh_keys_config = stack_configuration(stack, {}).ssh_keys
 
-        unless stack_configuration.ssh_keys.nil?
+        unless ssh_keys_config.nil?
           desc "Ensure ssh keys for #{stack}"
           task :ssh_keys do
-            stack_configuration.ssh_keys.each { |ssh_key_name|
+            ssh_keys_config.each { |ssh_key_name|
               key = AwsSshKey::Key.new(
-                key_path: "/#{configuration.estate}/#{configuration.component}/#{stack}/#{configuration.deployment_identifier}/ssh_key",
+                key_path: "/#{stack_configuration(stack, {}).estate}/#{stack_configuration(stack, {}).component}/#{stack}/#{stack_configuration(stack, {}).deployment_identifier}/ssh_key",
                 key_name: ssh_key_name,
-                aws_region: configuration.region,
+                aws_region: stack_configuration(stack, {}).region,
                 tags: {
-                  :Estate => configuration.estate,
-                  :Component => configuration.component,
+                  :Estate => stack_configuration(stack, {}).estate,
+                  :Component => stack_configuration(stack, {}).component,
                   :Service => stack,
-                  :DeploymentIdentifier => configuration.deployment_identifier
+                  :DeploymentIdentifier => stack_configuration(stack, {}).deployment_identifier
                 }
               )
               key.load
