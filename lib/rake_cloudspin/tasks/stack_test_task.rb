@@ -38,15 +38,15 @@ module RakeCloudspin
           profile != '..'
           File.exists? ("#{stack_type}/#{stack_name}/tests/inspec/#{profile}/inspec.yml")
         }.each { |profile|
-          profile_name = profile != '.' ? profile : 'root'
-          puts "INSPEC (profile '#{profile_name}'): #{inspec_cmd(profile_name)}"
-          system(inspec_cmd(profile_name))
+          profile_name = profile != '.' ? profile : '__root__'
+          puts "INSPEC (profile '#{profile_name}'): #{inspec_cmd(profile, profile_name)}"
+          system(inspec_cmd(profile, profile_name))
         }
       end
 
-      def inspec_cmd(profile_name)
+      def inspec_cmd(profile, profile_name)
           "inspec exec " \
-          "#{stack_type}/#{stack_name}/tests/inspec/#{profile_name} " \
+          "#{stack_type}/#{stack_name}/tests/inspec/#{profile} " \
           "-t aws:// " \
           "--reporter json-rspec:work/tests/inspec/results-#{stack_type}-#{stack_name}-#{profile_name}.json " \
           "cli " \

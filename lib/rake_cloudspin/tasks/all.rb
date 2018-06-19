@@ -20,6 +20,9 @@ module RakeCloudspin
         define_delivery_stacks_tasks
 
         define_statebucket_tasks
+
+        define_top_level_deployment_tasks
+        define_top_level_delivery_tasks
       end
 
       def hiera_file
@@ -84,6 +87,24 @@ module RakeCloudspin
             add_statebucket_if_required(stack_type, stack)
           }
         end
+      end
+
+      def define_top_level_deployment_tasks
+        ['plan', 'provision', 'destroy', 'test'].each { |action|
+          desc "#{action} for all deployment stacks"
+          task action => @deployment_stacks.map { |stack|
+            :"deployment:#{stack}:#{action}"
+          }
+        }
+      end
+
+      def define_top_level_delivery_tasks
+        ['plan', 'provision', 'destroy', 'test'].each { |action|
+          desc "#{action} for all delivery stacks"
+          task "delivery_#{action}" => @delivery_stacks.map { |stack|
+            :"delivery:#{stack}:#{action}"
+          }
+        }
       end
 
       def stack_needs_ssh_keys?(stack_type, stack)
