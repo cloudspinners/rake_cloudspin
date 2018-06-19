@@ -6,6 +6,11 @@ module RakeCloudspin
       attr_reader :state_buckets
 
       def define
+        define_terraform_tasks
+        define_vars_task
+      end
+
+      def define_terraform_tasks
         RakeTerraform.define_command_tasks do |t|
           t.configuration_name = "#{stack_type}-#{stack_name}"
           t.source_directory = "#{stack_type}/#{stack_name}/infra"
@@ -25,14 +30,23 @@ module RakeCloudspin
           else
             raise "ERROR: Unknown stack state type '#{stack_state_configuration['type']}' for #{stack_type} stack '#{stack_name}'"
           end
+          t.vars = terraform_vars
+        end
+      end
 
-          t.vars = lambda do |args|
-            puts "Terraform variables:"
-            puts "---------------------------------------"
-            puts "#{configuration['vars'].to_yaml}"
-            puts "---------------------------------------"
-            configuration['vars']
-          end
+      def define_vars_task
+        desc "Show terraform variables for stack '#{stack_name}'"
+        task :vars do
+          puts "Stack variables for '#{stack_name}'"
+          puts "---------------------------------------"
+          puts "#{terraform_vars.call({}).to_yaml}"
+          puts "---------------------------------------"
+        end
+      end
+
+      def terraform_vars
+        lambda do |args|
+          stack_config.vars
         end
       end
 

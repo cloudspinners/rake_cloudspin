@@ -90,7 +90,7 @@ module RakeCloudspin
       end
 
       def define_top_level_deployment_tasks
-        ['plan', 'provision', 'destroy', 'test'].each { |action|
+        ['plan', 'provision', 'destroy', 'test', 'vars'].each { |action|
           desc "#{action} for all deployment stacks"
           task action => @deployment_stacks.map { |stack|
             :"deployment:#{stack}:#{action}"
@@ -99,7 +99,7 @@ module RakeCloudspin
       end
 
       def define_top_level_delivery_tasks
-        ['plan', 'provision', 'destroy', 'test'].each { |action|
+        ['plan', 'provision', 'destroy', 'test', 'vars'].each { |action|
           desc "#{action} for all delivery stacks"
           task "delivery_#{action}" => @delivery_stacks.map { |stack|
             :"delivery:#{stack}:#{action}"
