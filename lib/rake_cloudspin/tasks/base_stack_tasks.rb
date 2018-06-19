@@ -11,7 +11,9 @@ module RakeCloudspin
 
       attr_reader :configuration, :stacks, :stack_type, :stacks_with_tests
 
+
       def define
+        @state_buckets = {}
         @stacks = if Dir.exist?(stack_type)
           Dir.entries(stack_type).select { |stack|
             File.directory? File.join(stack_type, stack) and File.exists?("#{stack_type}/#{stack}/stack.yaml")
@@ -31,6 +33,7 @@ module RakeCloudspin
           define_terraform_installation_tasks
           define_top_level_tasks
           define_stack_tasks
+          define_remote_statebucket_tasks
         end
       end
 
@@ -75,12 +78,12 @@ module RakeCloudspin
 
           # TODO: Handle args that override configuration
           stack_state = stack_configuration(stack, {}).state
-          if stack_state.nil? || stack_state[:type].to_s.empty? || stack_state[:type] == 'local'
+          if stack_state.nil? || stack_state['type'].to_s.empty? || stack_state['type'] == 'local'
             add_local_state_configuration(stack, t)
-          elsif stack_state[:type] == 's3'
-            add_s3_backend_configuration(stack, task)
+          elsif stack_state['type'] == 's3'
+            add_s3_backend_configuration(stack, t, stack_state)
           else
-            raise "ERROR: Unknown stack state type '#{stack_state[:type]}' for #{stack_type} stack '#{stack}'"
+            raise "ERROR: Unknown stack state type '#{stack_state['type']}' for #{stack_type} stack '#{stack}'"
           end
 
           t.vars = lambda do |args|
@@ -109,10 +112,11 @@ module RakeCloudspin
             "#{stack}.tfstate")
       end
 
-      def add_s3_backend_configuration(stack, task)
+      def add_s3_backend_configuration(stack, task, stack_state_config)
         puts "INFO: Storing terraform state in a remote S3 bucket"
+        add_statebucket_to_be_created(stack, stack_state_config)
         task.backend_config = lambda do |args|
-          stack_configuration(stack, args).backend_config
+          stack_state_config
         end
         puts "backend:"
         puts "---------------------------------------"
@@ -192,6 +196,23 @@ module RakeCloudspin
           task :plan => [ :ssh_keys ]
           task :provision => [ :ssh_keys ]
         end
+      end
+
+      def add_statebucket_to_be_created(stack, stack_state_config)
+        @state_buckets["#{stack_type}:#{stack}"] = stack_state_config
+      end
+
+      def define_remote_statebucket_tasks
+        puts "STATE BUCKETS:"
+        @state_buckets.each { |stack, state_config|
+          puts "stack #{stack}: #{state_config.to_yaml}"
+          desc "Create state bucket used by stack '#{stack}'"
+          namespace stack do
+            task :statebucket do
+              puts "TODO: Create a statebucket: #{state_config.to_yaml}"
+            end
+          end
+        }
       end
 
     end
