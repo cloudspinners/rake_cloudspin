@@ -33,7 +33,7 @@ module RakeCloudspin
           define_terraform_installation_tasks
           define_top_level_tasks
           define_stack_tasks
-          define_remote_statebucket_tasks
+          define_statebucket_tasks
         end
       end
 
@@ -118,7 +118,7 @@ module RakeCloudspin
         if state_scope.nil?
           raise "Scope not defined for remote state for stack '#{stack}'"
         elsif state_scope == 'deployment'
-          add_deployment_statebucket_to_be_created(stack, stack_state_config)
+          add_deployment_statebucket_to_be_created(stack_state_config)
         elsif state_scope == 'component'
           raise 'Component level statebucket not supported yet'
         elsif state_scope == 'account'
@@ -136,8 +136,7 @@ module RakeCloudspin
         puts "---------------------------------------"
       end
 
-      def add_deployment_statebucket_to_be_created(stack, stack_state_config)
-        # @state_buckets["#{stack_type}:#{stack}"] = stack_state_config
+      def add_deployment_statebucket_to_be_created(stack_state_config)
         # TODO: This will overwrite it for each deployment. TBH I'm not sure
         # we need anything more than what the deployment_id is called; the
         # actual bucket configuration should be standard. But we may want
@@ -145,12 +144,10 @@ module RakeCloudspin
         @state_buckets['deployment'] = stack_state_config
       end
 
-      def define_remote_statebucket_tasks
-        puts "STATE BUCKETS:"
-        @state_buckets.each { |stack, state_config|
-          puts "stack #{stack}: #{state_config.to_yaml}"
-          desc "Create state bucket used by stack '#{stack}'"
-          namespace stack do
+      def define_statebucket_tasks
+        @state_buckets.each { |statebucket_scope, state_config|
+          desc "Create statebucket for scope '#{statebucket_scope}'"
+          namespace statebucket_scope do
             task :statebucket do
               puts "TODO: Create a statebucket: #{state_config.to_yaml}"
             end
