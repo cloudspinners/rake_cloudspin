@@ -114,7 +114,19 @@ module RakeCloudspin
 
       def add_s3_backend_configuration(stack, task, stack_state_config)
         puts "INFO: Storing terraform state in a remote S3 bucket"
-        add_statebucket_to_be_created(stack, stack_state_config)
+        state_scope = stack_state_config['scope']
+        if state_scope.nil?
+          raise "Scope not defined for remote state for stack '#{stack}'"
+        elsif state_scope == 'deployment'
+          add_deployment_statebucket_to_be_created(stack, stack_state_config)
+        elsif state_scope == 'component'
+          raise 'Component level statebucket not supported yet'
+        elsif state_scope == 'account'
+          raise 'Account level statebucket not supported yet'
+        else
+          raise "Unknown scope for statebucket: '#{state_scope}'"
+        end
+
         task.backend_config = lambda do |args|
           stack_state_config
         end
@@ -122,6 +134,28 @@ module RakeCloudspin
         puts "---------------------------------------"
         puts "#{task.backend_config.call({}).to_yaml}"
         puts "---------------------------------------"
+      end
+
+      def add_deployment_statebucket_to_be_created(stack, stack_state_config)
+        # @state_buckets["#{stack_type}:#{stack}"] = stack_state_config
+        # TODO: This will overwrite it for each deployment. TBH I'm not sure
+        # we need anything more than what the deployment_id is called; the
+        # actual bucket configuration should be standard. But we may want
+        # ability to override some settings.
+        @state_buckets['deployment'] = stack_state_config
+      end
+
+      def define_remote_statebucket_tasks
+        puts "STATE BUCKETS:"
+        @state_buckets.each { |stack, state_config|
+          puts "stack #{stack}: #{state_config.to_yaml}"
+          desc "Create state bucket used by stack '#{stack}'"
+          namespace stack do
+            task :statebucket do
+              puts "TODO: Create a statebucket: #{state_config.to_yaml}"
+            end
+          end
+        }
       end
 
       def define_tasks_for_stack_tests(stack)
@@ -196,23 +230,6 @@ module RakeCloudspin
           task :plan => [ :ssh_keys ]
           task :provision => [ :ssh_keys ]
         end
-      end
-
-      def add_statebucket_to_be_created(stack, stack_state_config)
-        @state_buckets["#{stack_type}:#{stack}"] = stack_state_config
-      end
-
-      def define_remote_statebucket_tasks
-        puts "STATE BUCKETS:"
-        @state_buckets.each { |stack, state_config|
-          puts "stack #{stack}: #{state_config.to_yaml}"
-          desc "Create state bucket used by stack '#{stack}'"
-          namespace stack do
-            task :statebucket do
-              puts "TODO: Create a statebucket: #{state_config.to_yaml}"
-            end
-          end
-        }
       end
 
     end
