@@ -13,6 +13,7 @@ module RakeCloudspin
 
 
       def define
+raise 'DEPRECATED'
         @state_buckets = {}
         @stacks = if Dir.exist?(stack_type)
           Dir.entries(stack_type).select { |stack|
