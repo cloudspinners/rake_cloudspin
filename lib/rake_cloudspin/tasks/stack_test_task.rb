@@ -21,11 +21,12 @@ module RakeCloudspin
       end
 
       def create_inspec_attributes
+        # TODO: Use args as overrides, so deployment_identifier will actually work
         mkpath "work/tests/inspec"
         File.open("work/tests/inspec/attributes-#{stack_type}-#{stack_name}.yml", 'w') {|f| 
           f.write({
-            'deployment_identifier' => stack_configuration(stack_name, {}).deployment_identifier,
-            'component' => stack_configuration(stack_name, {}).component,
+            'deployment_identifier' => stack_config().deployment_identifier,
+            'component' => stack_config().component,
             'service' => stack_name,
             'stack_name' => stack_name
           }.to_yaml)
@@ -38,19 +39,18 @@ module RakeCloudspin
           File.exists? ("#{stack_type}/#{stack_name}/tests/inspec/#{profile}/inspec.yml")
         }.each { |profile|
           profile_name = profile != '.' ? profile : 'root'
-          inspec_cmd(profile)
+          puts "INSPEC (profile '#{profile_name}'): #{inspec_cmd(profile_name)}"
+          system(inspec_cmd(profile_name))
         }
       end
 
-      def inspec_cmd(profile)
+      def inspec_cmd(profile_name)
           "inspec exec " \
-          "#{stack_type}/#{stack_name}/tests/inspec/#{profile} " \
+          "#{stack_type}/#{stack_name}/tests/inspec/#{profile_name} " \
           "-t aws:// " \
           "--reporter json-rspec:work/tests/inspec/results-#{stack_type}-#{stack_name}-#{profile_name}.json " \
           "cli " \
           "--attrs work/tests/inspec/attributes-#{stack_type}-#{stack_name}.yml"
-        puts "INSPEC (profile '#{profile}'): #{inspec_cmd}"
-        system(inspec_cmd)
       end
 
     end
