@@ -10,6 +10,8 @@ module RakeCloudspin
         @configuration = Confidante.configuration(
           :hiera => Hiera.new(config: hiera_file)
         )
+        @deployment_statebuckets = {}
+
         @state_buckets = {}
 
         discover_deployment_stacks
@@ -64,29 +66,45 @@ module RakeCloudspin
 
       def define_stack_tasks(stack_type, stacks)
         namespace stack_type do
-          stacks.each { |stack|
-            namespace stack do
+          stacks.each { |stack_name|
+            namespace stack_name do
               StackTask.new do |t|
-                t.stack_name = stack
+                t.stack_name = stack_name
                 t.stack_type = stack_type
                 t.configuration = configuration
+                # if stack_uses_s3_bucket?(stack_type, stack_name)
+                #   t.state_type = 'remote'
+                #   t.remote_state_configuration = remote_state_configuration(stack_type, stack_name, {})
+                # else
+                #   t.state_type = 'local'
+                # end
               end
-              if stack_needs_ssh_keys?(stack_type, stack)
+              if stack_needs_ssh_keys?(stack_type, stack_name)
                 SshKeyTask.new do |t|
-                  t.stack_name = stack
+                  t.stack_name = stack_name
                   t.stack_type = stack_type
                   t.configuration = configuration
                 end
               end
               StackTestTask.new do |t|
-                t.stack_name = stack
+                t.stack_name = stack_name
                 t.stack_type = stack_type
                 t.configuration = configuration
               end
             end
-            add_statebucket_if_required(stack_type, stack)
           }
         end
+      end
+
+      def define_statebucket_tasks
+        @deployment_statebuckets.each { |deployment_identifier, bucket|
+          desc "Manage statebucket for deployment #{deployment_identifier}"
+          task "deployment:statebucket" do
+            puts "TODO: Add statebucket tasks"
+            puts "bucket: #{bucket.bucket_name}"
+            puts "deployment_identifier: #{deployment_identifier}"
+          end
+        }
       end
 
       def define_top_level_deployment_tasks
@@ -107,6 +125,12 @@ module RakeCloudspin
         }
       end
 
+      def configuration_with_overrides(args, stack_type, stack_name)
+        configuration
+            .for_overrides(args)
+            .for_scope(stack_type => stack_name)
+      end
+
       def stack_needs_ssh_keys?(stack_type, stack)
         ! configuration
             .for_scope(stack_type => stack).ssh_keys.nil?
@@ -118,43 +142,71 @@ module RakeCloudspin
         ! state_config.nil? && state_config['type'] == 's3'
       end
 
-      def add_statebucket_if_required(stack_type, stack_name)
-        if stack_uses_s3_bucket?(stack_type, stack_name)
-          state_configuration = configuration
-              .for_scope(stack_type => stack_name).state
-          state_scope = state_configuration['scope']
-          if state_scope.nil?
-            raise "Scope is not defined for remote state for stack_name '#{stack_name}'"
-          elsif state_scope == 'deployment'
-            add_deployment_statebucket_to_be_created(state_configuration)
-          elsif state_scope == 'component'
-            raise 'Component level statebucket not supported yet'
-          elsif state_scope == 'account'
-            raise 'Account level statebucket not supported yet'
-          else
-            raise "Unknown scope for statebucket: '#{state_scope}'"
-          end
+      def remote_state_configuration(stack_type, stack_name, args)
+        stack_configuration = configuration_with_overrides(args, stack_type, stack_name)
+        scope = stack_configuration.state['scope']
+        if scope == 'deployment'
+          bucket = deployment_statebucket(stack_configuration)
+          state_key = state_key(stack_name, stack_configuration)
+          bucket.terraform_config.merge({'key' => state_key })
+        else
+          raise "ERROR: Unsupported remote state scope '#{scope}'"
         end
       end
 
-      def add_deployment_statebucket_to_be_created(stack_state_config)
-        # TODO: This will overwrite it for each deployment. TBH I'm not sure
-        # we need anything more than what the deployment_id is called; the
-        # actual bucket configuration should be standard. But we may want
-        # ability to override some settings.
-        @state_buckets['deployment'] = stack_state_config
+      def deployment_statebucket(stack_configuration)
+        puts "KSM: deployment_statebucket(stack_configuration)"
+        puts "KSM: deployment_identifier: #{stack_configuration['deployment_identifier']}"
+        if @deployment_statebuckets[stack_configuration['deployment_identifier']].nil?
+          @deployment_statebuckets[stack_configuration['deployment_identifier']] =
+            Statebucket::DeploymentStatebucket.new(stack_configuration)
+        end
+        @deployment_statebuckets[stack_configuration['deployment_identifier']]
       end
 
-      def define_statebucket_tasks
-        @state_buckets.each { |scope, config|
-          desc "Create statebucket for scope '#{scope}'"
-          namespace scope do
-            task :statebucket do
-              puts "TODO: Create a statebucket: #{config.to_yaml}"
-            end
-          end
-        }
-      end
+      # def state_key(stack_name, stack_configuration)
+      #   "deployment/#{stack_configuration['deployment_identifier']}/#{stack_name}.tfstate"
+      # end
+
+      # def add_statebucket_if_required(stack_type, stack_name)
+      #   if stack_uses_s3_bucket?(stack_type, stack_name)
+      #     state_configuration = configuration
+      #         .for_scope(stack_type => stack_name).state
+      #     state_scope = state_configuration['scope']
+      #     if state_scope.nil?
+      #       raise "Scope is not defined for remote state for stack_name '#{stack_name}'"
+      #     elsif state_scope == 'deployment'
+      #       add_deployment_statebucket_to_be_created(state_configuration)
+      #     elsif state_scope == 'component'
+      #       raise 'Component level statebucket not supported yet'
+      #     elsif state_scope == 'account'
+      #       raise 'Account level statebucket not supported yet'
+      #     else
+      #       raise "Unknown scope for statebucket: '#{state_scope}'"
+      #     end
+      #   end
+      # end
+
+      # def add_deployment_statebucket_to_be_created(stack_state_config)
+      #   # TODO: This will overwrite it for each deployment. TBH I'm not sure
+      #   # we need anything more than what the deployment_id is called; the
+      #   # actual bucket configuration should be standard. But we may want
+      #   # ability to override some settings.
+      #   @deployment_statebuckets[x]
+      #   @state_buckets['deployment'] = stack_state_config
+      # end
+
+      # def
+      # @deployment_statebuckets = define_statebucket_tasks
+      #   @state_buckets.each { |scope, config|
+      #     desc "Create statebucket for scope '#{scope}'"
+      #     namespace scope do
+      #       task :statebucket do
+      #         puts "TODO: Create a statebucket: #{config.to_yaml}"
+      #       end
+      #     end
+      #   }
+      # end
 
     end
   end
