@@ -10,9 +10,9 @@ module RakeCloudspin
         @configuration = Confidante.configuration(
           :hiera => Hiera.new(config: hiera_file)
         )
-        @deployment_statebuckets = {}
-
-        @state_buckets = {}
+        # @deployment_statebuckets = {}
+        # @state_buckets = {}
+        @deployment_statebucket_required = false
 
         discover_deployment_stacks
         discover_delivery_stacks
@@ -72,12 +72,9 @@ module RakeCloudspin
                 t.stack_name = stack_name
                 t.stack_type = stack_type
                 t.configuration = configuration
-                # if stack_uses_s3_bucket?(stack_type, stack_name)
-                #   t.state_type = 'remote'
-                #   t.remote_state_configuration = remote_state_configuration(stack_type, stack_name, {})
-                # else
-                #   t.state_type = 'local'
-                # end
+              end
+              if deployment_statebucket_required?(stack_type, stack_name)
+                @deployment_statebucket_required = true
               end
               if stack_needs_ssh_keys?(stack_type, stack_name)
                 SshKeyTask.new do |t|
@@ -97,14 +94,15 @@ module RakeCloudspin
       end
 
       def define_statebucket_tasks
-        @deployment_statebuckets.each { |deployment_identifier, bucket|
-          desc "Manage statebucket for deployment #{deployment_identifier}"
-          task "deployment:statebucket" do
-            puts "TODO: Add statebucket tasks"
-            puts "bucket: #{bucket.bucket_name}"
-            puts "deployment_identifier: #{deployment_identifier}"
+        if @deployment_statebucket_required
+          namespace 'deployment' do
+            namespace 'statebucket' do
+              DeploymentStatebucketTask.new do |t|
+                t.configuration = configuration
+              end
+            end
           end
-        }
+        end
       end
 
       def define_top_level_deployment_tasks
@@ -125,44 +123,71 @@ module RakeCloudspin
         }
       end
 
-      def configuration_with_overrides(args, stack_type, stack_name)
-        configuration
-            .for_overrides(args)
-            .for_scope(stack_type => stack_name)
-      end
-
       def stack_needs_ssh_keys?(stack_type, stack)
         ! configuration
             .for_scope(stack_type => stack).ssh_keys.nil?
       end
 
-      def stack_uses_s3_bucket?(stack_type, stack_name)
+      def stack_uses_remote_state?(stack_type, stack_name)
         state_config = configuration
             .for_scope(stack_type => stack_name).state
         ! state_config.nil? && state_config['type'] == 's3'
       end
 
-      def remote_state_configuration(stack_type, stack_name, args)
-        stack_configuration = configuration_with_overrides(args, stack_type, stack_name)
-        scope = stack_configuration.state['scope']
-        if scope == 'deployment'
-          bucket = deployment_statebucket(stack_configuration)
-          state_key = state_key(stack_name, stack_configuration)
-          bucket.terraform_config.merge({'key' => state_key })
-        else
-          raise "ERROR: Unsupported remote state scope '#{scope}'"
-        end
+      def deployment_statebucket_required?(stack_type, stack_name)
+        state_config = configuration
+            .for_scope(stack_type => stack_name).state
+
+        ! state_config.nil? && 
+            state_config['type'] == 's3' &&
+            state_config['scope'] == 'deployment'
       end
 
-      def deployment_statebucket(stack_configuration)
-        puts "KSM: deployment_statebucket(stack_configuration)"
-        puts "KSM: deployment_identifier: #{stack_configuration['deployment_identifier']}"
-        if @deployment_statebuckets[stack_configuration['deployment_identifier']].nil?
-          @deployment_statebuckets[stack_configuration['deployment_identifier']] =
-            Statebucket::DeploymentStatebucket.new(stack_configuration)
-        end
-        @deployment_statebuckets[stack_configuration['deployment_identifier']]
-      end
+
+      # def add_statebucket_required(stack_type, stack_name)
+      #   state_config = configuration
+      #       .for_scope(stack_type => stack_name).state
+      #   scope = stack_configuration.state['scope']
+      #   if scope == 'deployment'
+      #     bucket = deployment_statebucket(stack_configuration)
+      #     state_key = state_key(stack_name, stack_configuration)
+      #     bucket.terraform_config.merge({'key' => state_key })
+      #   else
+      #     raise "ERROR: Unsupported remote state scope '#{scope}'"
+      #   end
+      # end
+
+
+      # def configuration_with_overrides(args, stack_type, stack_name)
+      #   configuration
+      #       .for_overrides(args)
+      #       .for_scope(stack_type => stack_name)
+      # end
+
+
+
+
+      # def remote_state_configuration(stack_type, stack_name, args)
+      #   stack_configuration = configuration_with_overrides(args, stack_type, stack_name)
+      #   scope = stack_configuration.state['scope']
+      #   if scope == 'deployment'
+      #     bucket = deployment_statebucket(stack_configuration)
+      #     state_key = state_key(stack_name, stack_configuration)
+      #     bucket.terraform_config.merge({'key' => state_key })
+      #   else
+      #     raise "ERROR: Unsupported remote state scope '#{scope}'"
+      #   end
+      # end
+
+      # def deployment_statebucket(stack_configuration)
+      #   puts "KSM: deployment_statebucket(stack_configuration)"
+      #   puts "KSM: deployment_identifier: #{stack_configuration['deployment_identifier']}"
+      #   if @deployment_statebuckets[stack_configuration['deployment_identifier']].nil?
+      #     @deployment_statebuckets[stack_configuration['deployment_identifier']] =
+      #       Statebucket::DeploymentStatebucket.new(stack_configuration)
+      #   end
+      #   @deployment_statebuckets[stack_configuration['deployment_identifier']]
+      # end
 
       # def state_key(stack_name, stack_configuration)
       #   "deployment/#{stack_configuration['deployment_identifier']}/#{stack_name}.tfstate"
