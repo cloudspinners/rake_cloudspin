@@ -93,12 +93,21 @@ module RakeCloudspin
 
       def define_statebucket_tasks
         if @deployment_statebucket_required
+
           namespace 'deployment' do
+
             namespace 'statebucket' do
               DeploymentStatebucketTask.new do |t|
                 t.configuration = configuration
               end
             end
+
+            @deployment_stacks.each {|stack_name|
+              task "#{stack_name}:plan" => [ 'statebucket:plan' ]
+              task "#{stack_name}:provision" => [ 'statebucket:provision' ]
+              task "#{stack_name}:vars" => [ 'statebucket:vars' ]
+            }
+
           end
         end
       end
