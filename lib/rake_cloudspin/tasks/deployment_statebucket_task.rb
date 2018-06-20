@@ -13,11 +13,15 @@ module RakeCloudspin
       def define_terraform_tasks
         RakeTerraform.define_command_tasks do |t|
           t.configuration_name = "deployment-statebucket"
-          t.source_directory = "can-this-be-in-the-gem"
+          t.source_directory = source_directory
           t.work_directory = 'work'
           t.vars = terraform_vars_builder
           t.state_file = local_state_path_builder
         end
+      end
+
+      def source_directory
+        File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'statebucket', 'infra'))
       end
 
       def define_vars_task
