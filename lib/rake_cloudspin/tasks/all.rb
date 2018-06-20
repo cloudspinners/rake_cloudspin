@@ -10,8 +10,6 @@ module RakeCloudspin
         @configuration = Confidante.configuration(
           :hiera => Hiera.new(config: hiera_file)
         )
-        # @deployment_statebuckets = {}
-        # @state_buckets = {}
         @deployment_statebucket_required = false
 
         discover_deployment_stacks
@@ -142,96 +140,6 @@ module RakeCloudspin
             state_config['type'] == 's3' &&
             state_config['scope'] == 'deployment'
       end
-
-
-      # def add_statebucket_required(stack_type, stack_name)
-      #   state_config = configuration
-      #       .for_scope(stack_type => stack_name).state
-      #   scope = stack_configuration.state['scope']
-      #   if scope == 'deployment'
-      #     bucket = deployment_statebucket(stack_configuration)
-      #     state_key = state_key(stack_name, stack_configuration)
-      #     bucket.terraform_config.merge({'key' => state_key })
-      #   else
-      #     raise "ERROR: Unsupported remote state scope '#{scope}'"
-      #   end
-      # end
-
-
-      # def configuration_with_overrides(args, stack_type, stack_name)
-      #   configuration
-      #       .for_overrides(args)
-      #       .for_scope(stack_type => stack_name)
-      # end
-
-
-
-
-      # def remote_state_configuration(stack_type, stack_name, args)
-      #   stack_configuration = configuration_with_overrides(args, stack_type, stack_name)
-      #   scope = stack_configuration.state['scope']
-      #   if scope == 'deployment'
-      #     bucket = deployment_statebucket(stack_configuration)
-      #     state_key = state_key(stack_name, stack_configuration)
-      #     bucket.terraform_config.merge({'key' => state_key })
-      #   else
-      #     raise "ERROR: Unsupported remote state scope '#{scope}'"
-      #   end
-      # end
-
-      # def deployment_statebucket(stack_configuration)
-      #   puts "KSM: deployment_statebucket(stack_configuration)"
-      #   puts "KSM: deployment_identifier: #{stack_configuration['deployment_identifier']}"
-      #   if @deployment_statebuckets[stack_configuration['deployment_identifier']].nil?
-      #     @deployment_statebuckets[stack_configuration['deployment_identifier']] =
-      #       Statebucket::DeploymentStatebucket.new(stack_configuration)
-      #   end
-      #   @deployment_statebuckets[stack_configuration['deployment_identifier']]
-      # end
-
-      # def state_key(stack_name, stack_configuration)
-      #   "deployment/#{stack_configuration['deployment_identifier']}/#{stack_name}.tfstate"
-      # end
-
-      # def add_statebucket_if_required(stack_type, stack_name)
-      #   if stack_uses_s3_bucket?(stack_type, stack_name)
-      #     state_configuration = configuration
-      #         .for_scope(stack_type => stack_name).state
-      #     state_scope = state_configuration['scope']
-      #     if state_scope.nil?
-      #       raise "Scope is not defined for remote state for stack_name '#{stack_name}'"
-      #     elsif state_scope == 'deployment'
-      #       add_deployment_statebucket_to_be_created(state_configuration)
-      #     elsif state_scope == 'component'
-      #       raise 'Component level statebucket not supported yet'
-      #     elsif state_scope == 'account'
-      #       raise 'Account level statebucket not supported yet'
-      #     else
-      #       raise "Unknown scope for statebucket: '#{state_scope}'"
-      #     end
-      #   end
-      # end
-
-      # def add_deployment_statebucket_to_be_created(stack_state_config)
-      #   # TODO: This will overwrite it for each deployment. TBH I'm not sure
-      #   # we need anything more than what the deployment_id is called; the
-      #   # actual bucket configuration should be standard. But we may want
-      #   # ability to override some settings.
-      #   @deployment_statebuckets[x]
-      #   @state_buckets['deployment'] = stack_state_config
-      # end
-
-      # def
-      # @deployment_statebuckets = define_statebucket_tasks
-      #   @state_buckets.each { |scope, config|
-      #     desc "Create statebucket for scope '#{scope}'"
-      #     namespace scope do
-      #       task :statebucket do
-      #         puts "TODO: Create a statebucket: #{config.to_yaml}"
-      #       end
-      #     end
-      #   }
-      # end
 
     end
   end

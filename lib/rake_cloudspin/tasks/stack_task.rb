@@ -3,9 +3,6 @@ module RakeCloudspin
   module Tasks
     class StackTask < BaseTask
 
-      # parameter :state_type, :required => true
-      # parameter :remote_state_configuration
-
       def define
         define_terraform_tasks
         define_vars_task
@@ -49,17 +46,6 @@ module RakeCloudspin
         end
       end
 
-      # def assign_state_configuration(task)
-      #     # TODO: Handle args that override configuration
-      #     if uses_local_state?
-      #       task.state_file = local_state_configuration
-      #     elsif uses_remote_state?
-      #       task.backend_config = remote_statebucket.config
-      #     else
-      #       raise "ERROR: Unknown stack state type '#{state_configuration['type']}' for #{stack_type} stack '#{stack_name}'"
-      #     end
-      # end
-
       def uses_local_state?
         state_configuration.nil? ||
           state_configuration['type'].to_s.empty? || 
@@ -75,15 +61,6 @@ module RakeCloudspin
       def state_configuration
         stack_config.state
       end
-
-      # def remote_statebucket
-      #   if @remote_statebucket.nil?
-      #     scope = state_configuration['scope']
-      #     if scope == 'deployment'
-
-      #     end
-      #   end
-      # end
 
       def terraform_vars_builder
         lambda do |args|
@@ -125,22 +102,6 @@ module RakeCloudspin
           "#{stack_name}.tfstate"
         ].join('/')
       end
-
-      # def remote_state_configuration
-      #   bucket = 
-      #   lambda do |args|
-      #     {
-      #       'region' => stack_config('region')
-      #       'bucket' => 
-      #       'key' => remote_state_path,
-      #       'encrypt' => "%{hiera('deployment_statebucket_is_encrypted')}"
-      #     }
-      #   end
-      # end
-
-      # def remote_state_path
-      #   "state-%{stack_config('estate')}-state-%{stack_config('component')}-state-%{stack_config('deployment_identifier')}- %{hiera('component')}-deployment-%{hiera('environment_identifier')}"
-      # end
 
     end
   end
