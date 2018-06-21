@@ -17,6 +17,20 @@ Our hypothesis is that, with a common project structure and tooling:
 - People can create and share infrastructure code for running various software and services, creating a community library.
 
 
+## Philosophy
+
+- [Convention over configuration](https://en.wikipedia.org/wiki/Convention_over_configuration).
+-- The tool should discover elements of the project based on folder structure
+-- A given configuration value should be set in a single place
+-- Implies a highly "opinionated" approach
+- Encourage good agile engineering practices for the infrastructure code
+-- Writing and running tests should be a natural thing
+-- Building and using [infrastructure pipelines](http://infrastructure-as-code.com/book/2017/08/02/environment-pipeline.html) should be a natural thing
+- Support evolutionary architecture
+-- Loose coupling of infrastructure elements
+- Empower developers / users of infrastructure
+
+
 # Component project
 
 Cloudspin is used to manage Terraform projects for AWS infrastructure. It uses Ruby rake. There are some example projects, [simple-stack](https://github.com/cloudspinners/spin-simple-stack) is a simple example.
