@@ -313,6 +313,15 @@ Replace `simpleweb` with the name of a different stack as appropriate. For deliv
 What's the `work` folder about?
 
 
-# Contributing
+# General info
+
+
+## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/rake_cloudspin.
+
+
+## Components
+
+This is largely based on code from [Infrablocks](https://github.com/infrablocks), and uses some components, including [rake_terraform](https://github.com/infrablocks/rake_terraform).
+
