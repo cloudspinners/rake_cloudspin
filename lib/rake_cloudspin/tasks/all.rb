@@ -4,6 +4,7 @@ module RakeCloudspin
 
       parameter :deployment_stacks
       parameter :delivery_stacks
+      parameter :account_stacks
       parameter :configuration
 
       def define
@@ -14,15 +15,18 @@ module RakeCloudspin
 
         discover_deployment_stacks
         discover_delivery_stacks
+        discover_account_stacks
 
         define_terraform_installation_tasks
         define_deployment_stacks_tasks
         define_delivery_stacks_tasks
+        define_account_stacks_tasks
 
         define_statebucket_tasks
 
         define_top_level_deployment_tasks
         define_top_level_delivery_tasks
+        define_top_level_account_tasks
       end
 
       def hiera_file
@@ -35,6 +39,10 @@ module RakeCloudspin
 
       def discover_delivery_stacks
         @delivery_stacks = discover_stacks('delivery')
+      end
+
+      def discover_account_stacks
+        @account_stacks = discover_stacks('account')
       end
 
       def discover_stacks(stack_type)
@@ -60,6 +68,10 @@ module RakeCloudspin
 
       def define_delivery_stacks_tasks
         define_stack_tasks('delivery', @delivery_stacks)
+      end
+
+      def define_account_stacks_tasks
+        define_stack_tasks('account', @account_stacks)
       end
 
       def define_stack_tasks(stack_type, stacks)
@@ -126,6 +138,15 @@ module RakeCloudspin
           desc "#{action} for all delivery stacks"
           task "delivery_#{action}" => @delivery_stacks.map { |stack|
             :"delivery:#{stack}:#{action}"
+          }
+        }
+      end
+
+      def define_top_level_account_tasks
+        ['plan', 'provision', 'destroy', 'test', 'vars'].each { |action|
+          desc "#{action} for all account stacks"
+          task "delivery_#{action}" => @delivery_stacks.map { |stack|
+            :"account:#{stack}:#{action}"
           }
         }
       end
