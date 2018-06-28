@@ -64,7 +64,15 @@ module RakeCloudspin
 
       def terraform_vars_builder
         lambda do |args|
-          stack_config.vars
+          stack_config.vars.merge(assume_role_arn_var)
+        end
+      end
+
+      def assume_role_arn_var
+        if assume_role?
+          { 'assume_role_arn' => stack_manager_role_arn }
+        else
+          { 'assume_role_arn' => '' }
         end
       end
 

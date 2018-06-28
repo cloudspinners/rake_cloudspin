@@ -3,9 +3,9 @@ module RakeCloudspin
   module Tasks
     class BaseTask < TaskLib
 
+      parameter :configuration, :required => true
       parameter :stack_name, :required => true
       parameter :stack_type, :required => true
-      parameter :configuration, :required => true
 
       def stack_config(args = {})
         configuration

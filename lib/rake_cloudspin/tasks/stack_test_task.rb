@@ -3,6 +3,9 @@ module RakeCloudspin
   module Tasks
     class StackTestTask < BaseTask
 
+      parameter :stack_name, :required => true
+      parameter :stack_type, :required => true
+
       def define
         desc 'Run inspec tests'
         task :test do

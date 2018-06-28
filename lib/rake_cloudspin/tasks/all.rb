@@ -107,7 +107,6 @@ module RakeCloudspin
         if @deployment_statebucket_required
 
           namespace 'deployment' do
-
             namespace 'statebucket' do
               DeploymentStatebucketTask.new do |t|
                 t.configuration = configuration
