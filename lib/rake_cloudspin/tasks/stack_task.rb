@@ -9,11 +9,12 @@ module RakeCloudspin
       end
 
       def define_terraform_tasks
-        RakeTerraform.define_command_tasks do |t|
+        RakeTerraform.define_command_tasks do |t, args|
           t.configuration_name = "#{stack_type}-#{stack_name}"
           t.source_directory = "#{stack_type}/#{stack_name}/infra"
           t.work_directory = 'work'
           t.vars = terraform_vars_builder
+          # t.plan_file = "#{stack_config(args).deployment_identifier}.plan"
           if uses_local_state?
             t.state_file = local_state_path_builder
           elsif uses_remote_state?
