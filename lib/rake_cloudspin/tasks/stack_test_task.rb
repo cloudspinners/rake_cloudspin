@@ -34,7 +34,7 @@ module RakeCloudspin
       end
 
       def test_attributes(args)
-        attributes = stack_config(args).vars
+        attributes = stack_config(args).vars.merge(stack_config(args).test_vars)
       end
 
       def run_inspec_profile
