@@ -39,22 +39,50 @@ module RakeCloudspin
 
       def run_inspec_profile
         lambda do |args|
-          inspec_profiles = Dir.entries("#{stack_type}/#{stack_name}/tests/inspec").select { |profile|
-            profile != '..'
-            File.exists? ("#{stack_type}/#{stack_name}/tests/inspec/#{profile}/inspec.yml")
-          }.each { |profile|
-            profile_name = profile != '.' ? profile : '__root__'
-            puts "INSPEC (profile '#{profile_name}'): #{inspec_cmd(profile, profile_name)}"
-            system(inspec_cmd(profile, profile_name))
+          inspec_profiles = Dir.entries("#{stack_type}/#{stack_name}/tests/inspec").select { |inspec_profile|
+            inspec_profile != '..' &&
+              File.exists?("#{stack_type}/#{stack_name}/tests/inspec/#{inspec_profile}/inspec.yml")
+          }.each { |inspec_profile|
+            inspec_profile_name = make_inspec_profile_name(inspec_profile)
+            puts "INSPEC (inspec_profile '#{inspec_profile_name}'): #{inspec_cmd(
+              inspec_profile: inspec_profile,
+              inspec_profile_name: inspec_profile_name,
+              aws_profile: aws_profile(inspec_profile, args),
+              aws_region: stack_config(args).region
+            )}"
+            puts "Inspec should use aws_profile: #{aws_profile(inspec_profile, args)}"
+            system(inspec_cmd(
+              inspec_profile: inspec_profile,
+              inspec_profile_name: inspec_profile_name,
+              aws_profile: aws_profile(inspec_profile, args),
+              aws_region: stack_config(args).region
+            ))
           }
         end
       end
 
-      def inspec_cmd(profile, profile_name)
+      def make_inspec_profile_name(inspec_profile)
+        inspec_profile != '.' ? inspec_profile : '__root__'
+      end
+
+      def aws_profile(inspec_profile, args)
+        aws_creds_hash = stack_config(args).inspec['aws_profile']
+        if aws_creds_hash[inspec_profile].to_s.empty?
+          if aws_creds_hash['default'].to_s.empty?
+            'default'
+          else
+            aws_creds_hash['default']
+          end
+        else
+          aws_creds_hash[inspec_profile]
+        end
+      end
+
+      def inspec_cmd(inspec_profile:, inspec_profile_name:, aws_profile:, aws_region:)
           "inspec exec " \
-          "#{stack_type}/#{stack_name}/tests/inspec/#{profile} " \
-          "-t aws:// " \
-          "--reporter json-rspec:work/tests/inspec/results-#{stack_type}-#{stack_name}-#{profile_name}.json " \
+          "#{stack_type}/#{stack_name}/tests/inspec/#{inspec_profile} " \
+          "-t aws://#{aws_region}/#{aws_profile} " \
+          "--reporter json-rspec:work/tests/inspec/results-#{stack_type}-#{stack_name}-#{inspec_profile_name}.json " \
           "cli " \
           "--attrs work/tests/inspec/attributes-#{stack_type}-#{stack_name}.yml"
       end
