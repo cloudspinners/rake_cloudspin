@@ -39,7 +39,11 @@ module RakeCloudspin
       end
 
       def test_attributes(args)
-        fix_user_list(stack_config(args).vars.merge(stack_config(args).test_vars))
+        fix_user_list(stack_config(args).vars.merge(test_vars(args)))
+      end
+
+      def test_vars(args)
+        stack_config(args).test_vars || {}
       end
 
       def fix_user_list(var_hash)
