@@ -7,6 +7,11 @@ module RakeCloudspin
       parameter :stack_type
 
       def define
+        define_inspec_task
+        define_aws_configuration_task
+      end
+
+      def define_inspec_task
         desc 'Run inspec tests'
         task :test do |t, args|
           if has_inspec_tests?
@@ -34,8 +39,45 @@ module RakeCloudspin
       end
 
       def test_attributes(args)
-        attributes = stack_config(args).vars.merge(stack_config(args).test_vars)
+        stack_config(args).vars.merge(stack_config(args).test_vars)
       end
+
+      def define_aws_configuration_task
+        task :aws_configuration do |t, args|
+          make_aws_configuration_file.call(args)
+        end
+      end
+
+      def make_aws_configuration_file
+        lambda do |args|
+          mkpath aws_configuration_folder
+          puts "INFO: Writing AWS configuration file: #{aws_configuration_file_path}"
+          File.open(aws_configuration_file_path, 'w') {|f| 
+            f.write(aws_configuration_contents(args))
+          }
+        end
+      end
+
+      def aws_configuration_folder
+        "work/#{stack_type}/#{stack_name}/aws"
+      end
+
+      def aws_configuration_file_path
+        "#{aws_configuration_folder}/config"
+      end
+
+      def aws_configuration_contents(args)
+        <<~END_AWS_CONFIG
+          [profile #{assume_role_profile}]
+          role_arn = #{stack_config(args).vars['assume_role_arn']}
+          source_profile = #{stack_config(args).vars['aws_profile']}
+        END_AWS_CONFIG
+      end
+
+      def assume_role_profile
+        "assume_role_for_#{stack_type}_#{stack_name}"
+      end
+
 
       def run_inspec_profile
         lambda do |args|
@@ -47,35 +89,23 @@ module RakeCloudspin
             puts "INSPEC (inspec_profile '#{inspec_profile_name}'): #{inspec_cmd(
               inspec_profile: inspec_profile,
               inspec_profile_name: inspec_profile_name,
-              aws_profile: aws_profile(inspec_profile, args),
+              aws_profile: assume_role_profile,
               aws_region: stack_config(args).region
             )}"
-            puts "Inspec should use aws_profile: #{aws_profile(inspec_profile, args)}"
-            system(inspec_cmd(
-              inspec_profile: inspec_profile,
-              inspec_profile_name: inspec_profile_name,
-              aws_profile: aws_profile(inspec_profile, args),
-              aws_region: stack_config(args).region
-            ))
+            system(
+              inspec_cmd(
+                  inspec_profile: inspec_profile,
+                  inspec_profile_name: inspec_profile_name,
+                  aws_profile: assume_role_profile,
+                  aws_region: stack_config(args).region
+              )
+            )
           }
         end
       end
 
       def make_inspec_profile_name(inspec_profile)
         inspec_profile != '.' ? inspec_profile : '__root__'
-      end
-
-      def aws_profile(inspec_profile, args)
-        aws_creds_hash = stack_config(args).inspec['aws_profile']
-        if aws_creds_hash[inspec_profile].to_s.empty?
-          if aws_creds_hash['default'].to_s.empty?
-            'default'
-          else
-            aws_creds_hash['default']
-          end
-        else
-          aws_creds_hash[inspec_profile]
-        end
       end
 
       def inspec_cmd(inspec_profile:, inspec_profile_name:, aws_profile:, aws_region:)

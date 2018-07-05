@@ -10,6 +10,7 @@
   - "account/%{account}/stack"
   - "deployment/%{deployment}/stack"
   - "delivery/%{delivery}/stack"
+  - "users-local"
   - "users"
   - "component-local"
   - "component"

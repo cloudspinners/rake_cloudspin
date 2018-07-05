@@ -14,7 +14,6 @@ module RakeCloudspin
           t.source_directory = "#{stack_type}/#{stack_name}/infra"
           t.work_directory = 'work'
           t.vars = terraform_vars_builder
-          # t.plan_file = "#{stack_config(args).deployment_identifier}.plan"
           if uses_local_state?
             t.state_file = local_state_path_builder
           elsif uses_remote_state?
@@ -65,15 +64,7 @@ module RakeCloudspin
 
       def terraform_vars_builder
         lambda do |args|
-          stack_config.vars.merge(assume_role_arn_var)
-        end
-      end
-
-      def assume_role_arn_var
-        if assume_role?
-          { 'assume_role_arn' => stack_manager_role_arn }
-        else
-          { 'assume_role_arn' => '' }
+          stack_config(args).vars
         end
       end
 
