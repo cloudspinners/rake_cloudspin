@@ -81,16 +81,15 @@ module RakeCloudspin
 
       def aws_configuration_contents(args)
         <<~END_AWS_CONFIG
-          [profile #{assume_role_profile}]
+          [profile #{assume_role_profile(args)}]
           role_arn = #{stack_config(args).vars['assume_role_arn']}
           source_profile = #{stack_config(args).vars['aws_profile']}
         END_AWS_CONFIG
       end
 
-      def assume_role_profile
-        "assume_role_for_#{stack_type}_#{stack_name}"
+      def assume_role_profile(args)
+        "assume-spin_account_manager-#{stack_config(args).component}"
       end
-
 
       def run_inspec_profile
         lambda do |args|
@@ -102,14 +101,14 @@ module RakeCloudspin
             puts "INSPEC (inspec_profile '#{inspec_profile_name}'): #{inspec_cmd(
               inspec_profile: inspec_profile,
               inspec_profile_name: inspec_profile_name,
-              aws_profile: assume_role_profile,
+              aws_profile: assume_role_profile(args),
               aws_region: stack_config(args).region
             )}"
             system(
               inspec_cmd(
                   inspec_profile: inspec_profile,
                   inspec_profile_name: inspec_profile_name,
-                  aws_profile: assume_role_profile,
+                  aws_profile: assume_role_profile(args),
                   aws_region: stack_config(args).region
               )
             )
