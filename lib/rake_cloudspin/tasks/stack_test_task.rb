@@ -47,11 +47,9 @@ module RakeCloudspin
       end
 
       def fix_user_list(var_hash)
-        var_hash.each { |name, value|
-          if name == 'api_users'
-            var_hash[name] = JSON.parse(value)
-          end
-        }
+        if var_hash.key?('api_users')
+          var_hash['api_users'] = eval(var_hash['api_users'])
+        end
         var_hash
       end
 
