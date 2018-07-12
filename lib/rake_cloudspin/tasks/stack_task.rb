@@ -64,7 +64,7 @@ module RakeCloudspin
 
       def terraform_vars_builder
         lambda do |args|
-          stack_config(args).vars
+          stack_config(args).vars.merge(spin_user_variables(args))
         end
       end
 

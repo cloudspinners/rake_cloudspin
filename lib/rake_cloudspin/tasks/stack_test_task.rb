@@ -39,18 +39,19 @@ module RakeCloudspin
       end
 
       def test_attributes(args)
-        fix_user_list(stack_config(args).vars.merge(test_vars(args)))
+        stack_config(args).vars.merge(test_vars(args)).merge(configured_api_users(args))
       end
 
       def test_vars(args)
         stack_config(args).test_vars || {}
       end
 
-      def fix_user_list(var_hash)
-        if var_hash.key?('api_users')
-          var_hash['api_users'] = eval(var_hash['api_users'])
-        end
-        var_hash
+      def configured_api_users(args)
+        build_user_configuration_hash(stack_config(args).api_users)
+      end
+
+      def build_user_configuration_hash(api_user_hash = {})
+        { 'configured_api_users' => api_user_hash }
       end
 
       def define_aws_configuration_task
