@@ -14,14 +14,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/cloudspinners/rake_cloudspin'
   spec.license = 'MIT'
 
-  # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
-  # to allow pushing to a single host or delete this section to allow pushing to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = 'TODO: Set to "http://mygemserver.com"'
-  else
-    raise 'RubyGems 2.0 or newer is required to protect against ' \
-      'public gem pushes.'
-  end
+  spec.metadata['allowed_push_host'] = 'http://mygemserver.com'
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -37,9 +30,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'confidante'
   spec.add_dependency 'rake_fly'
   spec.add_dependency 'aws_ssh_key'
-  spec.add_dependency 'aws_encrypted_bucket'
-  spec.add_dependency 'inspec'
 
+  spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake'
 end
