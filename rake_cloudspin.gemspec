@@ -14,8 +14,6 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/cloudspinners/rake_cloudspin'
   spec.license = 'MIT'
 
-  spec.metadata['allowed_push_host'] = 'http://mygemserver.com'
-
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
   spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
