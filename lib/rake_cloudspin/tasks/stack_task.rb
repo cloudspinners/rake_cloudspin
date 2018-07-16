@@ -89,7 +89,9 @@ module RakeCloudspin
               component: stack_config(args).component
             ),
             'key' => state_key(args),
-            'encrypt' => true
+            'encrypt' => true,
+            'profile' => stack_config(args).aws_profile,
+            'role_arn' => stack_config(args).spin_stack_manager_role_arn
           }
         end
       end

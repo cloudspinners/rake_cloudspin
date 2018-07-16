@@ -50,29 +50,10 @@ module RakeCloudspin
             'component' => config(args).component,
             'estate' => config(args).estate,
             'deployment_identifier' => config(args).deployment_identifier,
-            'assume_role_arn' => assume_role_arn_var(args)
+            'aws_profile' => config(args).aws_profile,
+            'assume_role_arn' => config(args).statebucket_role_arn
           }
         end
-      end
-
-      def assume_role_arn_var(args)
-        if assume_role?(args)
-          stack_manager_role_arn(args)
-        else
-          ''
-        end
-      end
-
-      def stack_manager_role_arn(args)
-        if assume_role?(args)
-          "arn:aws:iam::#{config(args).aws_account_id}:role/stack_manager-#{config(args).component}-#{config(args).estate}"
-        else
-          raise "Don't use 'stack_manager_role_arn' if assume_role? is false"
-        end
-      end
-
-      def assume_role?(args)
-        config(args).assume_role == true
       end
 
       def local_state_path_builder
